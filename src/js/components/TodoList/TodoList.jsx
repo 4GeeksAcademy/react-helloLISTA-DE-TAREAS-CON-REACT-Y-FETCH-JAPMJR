@@ -48,7 +48,7 @@ const TodoList = () => {
     setCargando(false);
   };
 
-  // Agregar tarea
+  
   const agregarTarea = async () => {
     if (!tarea) return;
     try {
@@ -80,7 +80,6 @@ const TodoList = () => {
     }
     setCargando(false);
   };
-
 
   useEffect(() => {
     const init = async () => {
