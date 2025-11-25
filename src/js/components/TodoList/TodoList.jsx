@@ -1,86 +1,94 @@
 import React, { useState, useEffect } from "react";
 
 const TodoList = () => {
-  const [tarea, setTarea] = useState(""); 
-  const [lista, setLista] = useState([]); 
-  const [cargando, setCargando] = useState(false); 
-  const [error, setError] = useState(null); 
-  const username = "jesus"; 
+  const [tarea, setTarea] = useState("");      // Input de la tarea
+  const [lista, setLista] = useState([]);      // Lista de tareas
+  const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState(null);
 
- 
+  const username = "jesus";
+
+  // Crear usuario (solo si no existe)
   const crearUsuario = async () => {
-    try {
-      await fetch(`https://playground.4geeks.com/todo/todos/${username}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify([]),
-      });
-    } catch (e) {
-      console.log("no se pudo crear usuario");
-    } finally {
-      cargarTareas();
+  try {
+    const resp = await fetch("https://playground.4geeks.com/todo/users", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username })
+    });
+
+    console.log("crearUsuario:", resp.ok, resp.status);
+
+    if (resp.ok) return true;
+    else {
+      console.log("Usuario ya existe o falló la creación");
+      return false;
     }
-  };
+  } catch (error) {
+    console.error("Error creando usuario:", error);
+    return false;
+  }
+};
 
+  // Cargar tareas
+ const cargarTareas = async () => {
+  setCargando(true);
+  try {
+    const resp = await fetch(`https://playground.4geeks.com/todo/users/${username}`);
+    const data = await resp.json();
 
-  const cargarTareas = async () => {
-    setCargando(true);
-    setError(null);
-    try {
-      const resp = await fetch(
-        `https://playground.4geeks.com/todo/todos/${username}`
-      );
-      const data = await resp.json();
-      if (Array.isArray(data)) setLista(data);
-      else setLista([]);
-    } catch (e) {
-      console.log(e);
-      setError("Error cargando tareas");
-      setLista([]);
-    }
-    setCargando(false);
-  };
+    // Asegúrate que lista sea siempre un array
+    setLista(data.todos || []);
+    console.log("GET response:", data);
+  } catch (e) {
+    console.error("Error cargando tareas:", e);
+    setError("Error cargando tareas");
+    setLista([]); // prevenir errores de .map
+  }
+  setCargando(false);
+};
 
- 
+  // Agregar tarea
   const agregarTarea = async () => {
-    if (tarea.trim() === "") return;
-    setCargando(true);
-    const nuevaLista = [...lista, { label: tarea, done: false }];
-    try {
-      await fetch(`https://playground.4geeks.com/todo/todos/${username}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nuevaLista),
-      });
-      setTarea("");
-      cargarTareas();
-    } catch (e) {
-      console.log(e);
-      setError("Error agregando tarea");
-    }
-    setCargando(false);
-  };
+  if (!tarea) return; // evitar enviar vacío
+  try {
+    const resp = await fetch(`https://playground.4geeks.com/todo/users/${username}/todos`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ label: tarea, done: false })
+    });
 
+    if (!resp.ok) throw new Error("POST failed " + resp.status);
 
-  const eliminarTarea = async (i) => {
-    setCargando(true);
-    const nuevaLista = lista.filter((_, index) => index !== i);
-    try {
-      await fetch(`https://playground.4geeks.com/todo/todos/${username}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nuevaLista),
-      });
-      cargarTareas();
-    } catch (e) {
-      console.log(e);
-      setError("Error eliminando tarea");
-    }
-    setCargando(false);
-  };
+    setTarea("");
+    cargarTareas();
+  } catch (error) {
+    console.error("Error agregando tarea:", error);
+  }
+};
 
+  // Eliminar tarea por ID
+  const eliminarTarea = async (id) => {
+  setCargando(true);
+  try {
+    await fetch(`https://playground.4geeks.com/todo/users/${username}/todos/${id}`, {
+      method: "DELETE"
+    });
+    cargarTareas();
+  } catch (e) {
+    console.error("Error eliminando tarea:", e);
+    setError("Error eliminando tarea");
+  }
+  setCargando(false);
+};
+
+  // Inicializar
   useEffect(() => {
-    crearUsuario();
+    const init = async () => {
+      await crearUsuario();
+      cargarTareas();
+    };
+    init();
   }, []);
 
   return (
@@ -95,39 +103,25 @@ const TodoList = () => {
         onKeyUp={(e) => e.key === "Enter" && agregarTarea()}
         disabled={cargando}
       />
-      <button onClick={agregarTarea} disabled={cargando}>
-  Agregar
-</button>
-<button onClick={() => setTarea("")} disabled={cargando}>
-  Limpiar
-</button>
 
-      {cargando && <p>Procesando...</p>}
+      <button onClick={agregarTarea} disabled={cargando}>Agregar</button>
+
       {error && <p style={{ color: "red" }}>{error}</p>}
 
       <ul>
-        {lista.length === 0 && <li>No hay tareas</li>}
-        {lista.map((t, i) => (
-          <li key={i}>
-            {t.label}{" "}
-            <button onClick={() => eliminarTarea(i)} disabled={cargando}>
-              
-            </button>
-          </li>
-        ))}
-      </ul>
+  {Array.isArray(lista) ? (
+    lista.map((t) => (
+      <li key={t.id}>
+        {t.label}
+        <button onClick={() => eliminarTarea(t.id)}>X</button>
+      </li>
+    ))
+  ) : (
+    <li>No hay tareas</li>
+  )}
+</ul>
 
       <p>Total de tareas: {lista.length}</p>
-
-      <p style={{ fontSize: "12px", color: "#666" }}>
-        Ver lista en:{" "}
-        <a
-          href={`https://playground.4geeks.com/todo/todos/${username}`}
-          target="_blank"
-        >
-          https://playground.4geeks.com/todo/todos/{username}
-        </a>
-      </p>
     </div>
   );
 };
