@@ -2,10 +2,12 @@ import React, { useState, useEffect } from "react";
 
 const TodoList = () => {
   const [tarea, setTarea] = useState("");
+  const [lista, setLista] = useState([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
 
   const username = "jesus";
+
 
   const crearUsuario = async () => {
     try {
@@ -19,7 +21,7 @@ const TodoList = () => {
 
       if (resp.ok) return true;
       else {
-        console.log("Usuario ya existe o falló la creación");
+        console.log("Usuario ya existe");
         return false;
       }
     } catch (error) {
@@ -28,11 +30,13 @@ const TodoList = () => {
     }
   };
 
+
   const cargarTareas = async () => {
     setCargando(true);
     try {
       const resp = await fetch(`https://playground.4geeks.com/todo/users/${username}`);
       const data = await resp.json();
+
 
       setLista(data.todos || []);
       console.log("GET response:", data);
@@ -44,6 +48,7 @@ const TodoList = () => {
     setCargando(false);
   };
 
+  // Agregar tarea
   const agregarTarea = async () => {
     if (!tarea) return;
     try {
@@ -76,6 +81,7 @@ const TodoList = () => {
     setCargando(false);
   };
 
+
   useEffect(() => {
     const init = async () => {
       await crearUsuario();
@@ -98,9 +104,7 @@ const TodoList = () => {
       />
 
       <button onClick={agregarTarea} disabled={cargando}>Agregar</button>
-
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
+    
       <ul>
         {Array.isArray(lista) ? (
           lista.map((t) => (
@@ -114,7 +118,7 @@ const TodoList = () => {
         )}
       </ul>
 
-      <p>Total de tareas: {lista.length}</p>
+      <p>Ttal de tareas: {lista.length}</p>
     </div>
   );
 };
