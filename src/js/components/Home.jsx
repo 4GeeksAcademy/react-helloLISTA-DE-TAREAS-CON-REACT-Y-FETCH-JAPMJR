@@ -4,7 +4,8 @@ import TodoList from "./TodoList/TodoList";
 
 const Home = () => {
     return (
-        <div className="text-center">
+        <div className="todo-container">
+  
             <TodoList />
         </div>
     );
