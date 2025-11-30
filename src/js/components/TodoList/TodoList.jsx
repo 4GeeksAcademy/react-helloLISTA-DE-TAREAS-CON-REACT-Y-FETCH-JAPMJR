@@ -6,87 +6,76 @@ const TodoList = () => {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
 
-  const username = "jesus";
-
-
-  const crearUsuario = async () => {
-    try {
-      const resp = await fetch("https://playground.4geeks.com/todo/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username })
-      });
-
-      console.log("crearUsuario:", resp.ok, resp.status);
-
-      if (resp.ok) return true;
-      else {
-        console.log("Usuario ya existe");
-        return false;
-      }
-    } catch (error) {
-      console.error("Error creando usuario:", error);
-      return false;
-    }
-  };
-
-
-  const cargarTareas = async () => {
-    setCargando(true);
-    try {
-      const resp = await fetch(`https://playground.4geeks.com/todo/users/${username}`);
-      const data = await resp.json();
-
-
-      setLista(data.todos || []);
-      console.log("GET response:", data);
-    } catch (e) {
-      console.error("Error cargando tareas:", e);
-      setError("Error cargando tareas");
-      setLista([]);
-    }
-    setCargando(false);
-  };
+  
+  const username = "demo";
 
   
-  const agregarTarea = async () => {
-    if (!tarea) return;
+  const cargarTareas = async () => {
+    setCargando(true);
+
     try {
-      const resp = await fetch(`https://playground.4geeks.com/todo/users/${username}/todos`, {
+      const resp = await fetch("https://playground.4geeks.com/todo/users/" + username);
+      const data = await resp.json();
+      if (data.todos) {
+        setLista(data.todos);
+      } else {
+        setLista([]);
+      }
+
+      console.log("GET:", data);
+
+    } catch (e) {
+      console.log("Error:", e);
+      setError("No se pudieron cargar las tareas");
+      setLista([]);
+    }
+
+    setCargando(false);
+  };
+
+  const agregarTarea = async () => {
+    if (tarea === "") {
+      return;
+    }
+
+    try {
+      const resp = await fetch("https://playground.4geeks.com/todo/users/" + username + "/todos", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label: tarea, done: false })
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          label: tarea,
+          done: false
+        })
       });
 
-      if (!resp.ok) throw new Error("POST failed " + resp.status);
+      await resp.json();
 
-      setTarea("");
-      cargarTareas();
+      setTarea(""); 
+      cargarTareas(); 
+
     } catch (error) {
-      console.error("Error agregando tarea:", error);
+      console.log("Error agregando:", error);
     }
   };
 
-  const eliminarTarea = async (id) => {
-    setCargando(true);
+   const eliminarTarea = async (id) => {
     try {
-      await fetch(`https://playground.4geeks.com/todo/users/${username}/todos/${id}`, {
-        method: "DELETE"
-      });
+      await fetch(
+        "https://playground.4geeks.com/todo/users/" + username + "/todos/" + id,
+        { method: "DELETE" }
+      );
+
       cargarTareas();
+
     } catch (e) {
-      console.error("Error eliminando tarea:", e);
-      setError("Error eliminando tarea");
+      console.log("Error eliminando:", e);
     }
-    setCargando(false);
   };
 
   useEffect(() => {
-    const init = async () => {
-      await crearUsuario();
-      cargarTareas();
-    };
-    init();
+    cargarTareas();
   }, []);
 
   return (
@@ -98,18 +87,23 @@ const TodoList = () => {
         placeholder="Escribe una tarea"
         value={tarea}
         onChange={(e) => setTarea(e.target.value)}
-        onKeyUp={(e) => e.key === "Enter" && agregarTarea()}
-        disabled={cargando}
+        onKeyUp={(e) => {
+          if (e.key === "Enter") {
+            agregarTarea();
+          }
+        }}
       />
 
-      <button onClick={agregarTarea} disabled={cargando}>Agregar</button>
-    
+      <button onClick={agregarTarea}>
+        Agregar
+      </button>
+
       <ul>
-        {Array.isArray(lista) ? (
-          lista.map((t) => (
-            <li key={t.id}>
-              {t.label}
-              <button onClick={() => eliminarTarea(t.id)}>X</button>
+        {lista.length > 0 ? (
+          lista.map((item) => (
+            <li key={item.id}>
+              {item.label}
+              <button onClick={() => eliminarTarea(item.id)}>X</button>
             </li>
           ))
         ) : (
@@ -117,9 +111,12 @@ const TodoList = () => {
         )}
       </ul>
 
-      <p>Ttal de tareas: {lista.length}</p>
+      <p>Total de tareas: {lista.length}</p>
+
+      {error && <p style={{ color: "red" }}>{error}</p>}
     </div>
   );
 };
 
 export default TodoList;
+
